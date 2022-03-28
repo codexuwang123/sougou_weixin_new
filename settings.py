@@ -120,6 +120,26 @@ test_sql = {
     'db': 'pythonr_eptile'
 }
 
+# 测试redis库地址
+test_redis = {
+
+    'host': '127.0.0.1',
+    'port': 6379,
+    'user': '',
+    'password': '123456',
+    'db': 7
+}
+
+# 正式库redis地址
+true_redis = {
+    'host': '',
+    'port': 6379,
+    'user': '',
+    'password': '',
+    'db': ''
+}
+
+
 
 # 设置日志函数
 def set_log():

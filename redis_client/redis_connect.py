@@ -6,14 +6,14 @@
 # 联系邮箱:iswongx@163.com
 
 import redis
-
+from settings import test_redis
 
 # 连接redis基本配置
 class Redis_connect():
 
     def __init__(self):
         # redis 链接池
-        conn_pool = redis.ConnectionPool(host='127.0.0.1', password='123456', port=6379, db=7)
+        conn_pool = redis.ConnectionPool(host=test_redis['host'], password=test_redis['password'], port=test_redis['port'], db=test_redis['db'])
         self.job_redis = redis.Redis(connection_pool=conn_pool)
 
     def search_data_redis(self, redis_key):

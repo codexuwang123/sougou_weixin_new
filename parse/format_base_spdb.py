@@ -265,7 +265,7 @@ def get_():
 if __name__ == '__main__':
 
     # s = Spider_data.Spider_desc_sougou_weixin(wd='一品毒妃')
-    # s.spider_sougou_weixin(page='1', keyword=s.wd)
+    # s.spider_sougou_weixin(page='2', keyword=s.wd)
     try:
         while True:
             get_()

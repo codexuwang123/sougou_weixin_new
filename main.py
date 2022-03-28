@@ -48,7 +48,7 @@ if __name__ == '__main__':
     while flag:
         print('等待新任务中========')
         try:
-            flag_data = red.search_all_data(redis_key='sougou')
+            flag_data = red.search_all_data(redis_key='sougou_weixin')
             flags = len(flag_data)
             red = redis_connect.Redis_connect()
             get_ = format_base_spdb.get_
