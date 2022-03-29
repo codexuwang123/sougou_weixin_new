@@ -53,7 +53,7 @@ class Save_score_to_sql(object):
     # 关键词查询
     def get_keyword(self):
 
-        sql = 'select Search_Keyword,Spider_Status from basic_information where Spider_Status=0 and channel_name=2'
+        sql = 'select Search_Keyword,Spider_Status from basic_information where Spider_Status=0 and channel_name=4'
         try:
             self.cur.execute(sql)
             results = self.cur.fetchall()
@@ -64,7 +64,7 @@ class Save_score_to_sql(object):
     # 更改状态
     def undate_data(self, status_, keyword):
         # 更改爬虫配置表状态
-        sql = "UPDATE basic_information SET Spider_Status = '{}' WHERE Search_Keyword = '{}' and  channel_name=2".format(
+        sql = "UPDATE basic_information SET Spider_Status = '{}' WHERE Search_Keyword = '{}' and  channel_name=4".format(
             status_, keyword)
         try:
             # print(sql)

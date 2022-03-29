@@ -11,7 +11,6 @@ import uuid
 import requests
 import time
 from to_sql import save_data_to_sql
-from settings import set_log
 from redis_client import redis_connect
 import json
 import urllib3
@@ -19,7 +18,7 @@ from spider import Spider_data
 from settings import ua
 
 urllib3.disable_warnings()
-logging_ = set_log()
+
 conn = redis_connect.Redis_connect()
 
 
@@ -50,11 +49,11 @@ def get_true(url,session):
                     print(e, '异常编码了================')
                     return info, res.url
             else:
-                logging_.info('编码异常-连接为{}，'.format(res.url))
+                # logging_.info('编码异常-连接为{}，'.format(res.url))
                 return '编码异常', res.url
         else:
             print('状态码异常返回数据', res.text)
-            logging_.info('状态码/服务异常-被访问链接为{}，'.format(res.url))
+            # logging_.info('状态码/服务异常-被访问链接为{}，'.format(res.url))
             return '服务异常', res.url
     except Exception as e:
         print(e, '异常')
@@ -70,7 +69,7 @@ def get_true(url,session):
         print('进入重定向了======1111 主意呀=========')
         try:
             res = session.get(url, headers=headers1, timeout=20, verify=False)
-            logging_.info('特殊异常{}，异常连接{}'.format(e, url))
+            # logging_.info('特殊异常{}，异常连接{}'.format(e, url))
             return res.text, url
         except Exception as e:
             print(e, '---------')
@@ -130,7 +129,7 @@ def format_data(data, dict):
 
 
 # 首页数据解析
-def format_text(first_data_list, tittle_list, keyword,cookies):
+def format_text(first_data_list, tittle_list, keyword,cookies,list_redis):
     list = []
     cookies1 = cookies
     for i, n in zip(first_data_list, tittle_list):
@@ -156,9 +155,10 @@ def format_text(first_data_list, tittle_list, keyword,cookies):
         dict['true_url'] = ''
         dict['keyword'] = keyword
         dict['cookies'] = cookies1
-        dict_ = json.dumps(dict)
-        print(dict_, '===========')
-        conn.insert_data_redis(redis_key='sougou_weixin', values=dict_)
+        list_redis.append(dict)
+        # dict_ = json.dumps(dict)
+        # print(dict_, '===========')
+        # conn.insert_data_redis(redis_key='sougou_weixin', values=dict_)
 
 
 # 获取jsessionid
@@ -217,58 +217,43 @@ def get_sougou_weixin_rue_url(skip_url,session):
 
 
 # 主要解析程序
-def get_():
+def get_(new_keyword, new_tittle, details_data, true_url,
+                          dict):
+    #
+    # print('线程进来了================')
+    # dta = conn.search_data_redis(redis_key='sougou_weixin')
+    # if dta:
+    #     dict = json.loads(dta)
+    #     # print(dict,'000109q39q8989q')
+    #     new_tittle = dict.get('tittle')
+    #     new_url = dict.get('url')
+    #     cookies = dict.get('cookies')
+    #     # print(cookies,'---------------')
+    #     cookies1 = get_jsessionid()
+    #     # print(cookies1,'======================')
+    #     print(type(new_url), new_url, '000000011111111111111111111111111')
+    #     true_url1 = get_sougou_weixin_rue_url(skip_url=new_url,session=cookies+cookies1)
+    #     details_data, true_url = get_true(url=true_url1,session=cookies+cookies1)
+    #     dict['true_url'] = true_url
+    #     new_keyword = dict.get('keyword')
+    if new_keyword in new_tittle:
+        if details_data == '编码异常':
+            print('编码异常====', true_url)
+            return None
+        if details_data == '超时':
+            print('超时了------------------', true_url)
+            return None
+        if details_data == '服务异常':
+            print('服务异常=================', true_url)
+            return None
 
-    print('线程进来了================')
-    dta = conn.search_data_redis(redis_key='sougou_weixin')
-    if dta:
-        dict = json.loads(dta)
-        # print(dict,'000109q39q8989q')
-        new_tittle = dict.get('tittle')
-        new_url = dict.get('url')
-        cookies = dict.get('cookies')
-        # print(cookies,'---------------')
-        cookies1 = get_jsessionid()
-        # print(cookies1,'======================')
-        print(type(new_url), new_url, '000000011111111111111111111111111')
-        true_url1 = get_sougou_weixin_rue_url(skip_url=new_url,session=cookies+cookies1)
-        details_data, true_url = get_true(url=true_url1,session=cookies+cookies1)
-        dict['true_url'] = true_url
-        new_keyword = dict.get('keyword')
-        if new_keyword in new_tittle:
-            if details_data == '编码异常':
-                print('编码异常====', true_url)
-                return None
-            if details_data == '超时':
-                print('超时了------------------', true_url)
-                return None
-            if details_data == '服务异常':
-                print('服务异常=================', true_url)
-                return None
+        format_data(data=details_data, dict=dict)
+        # 数据库存放数据
+        sql_server = save_data_to_sql.Save_score_to_sql()
+        sql_server.search_data_to_sql(data=dict)
+        sql_server.details_data_to_sql(data=dict)
 
-            format_data(data=details_data, dict=dict)
-            # 数据库存放数据
-            sql_server = save_data_to_sql.Save_score_to_sql()
-            sql_server.search_data_to_sql(data=dict)
-            sql_server.details_data_to_sql(data=dict)
-            # list.append(dict)
-            # print(dict)
-            return new_keyword
-        else:
-            print('不符合跳过0000000000000000000000000000000000')
-            print(new_tittle, '111111111111111111')
-            print(true_url, '2222222222222222')
     else:
-        print('数据爬取完成====')
-
-
-if __name__ == '__main__':
-
-    # s = Spider_data.Spider_desc_sougou_weixin(wd='一品毒妃')
-    # s.spider_sougou_weixin(page='2', keyword=s.wd)
-    try:
-        while True:
-            get_()
-            time.sleep(3)
-    except KeyboardInterrupt as e:
-        print(e, '强制中断 异常捕获===')
+        print('不符合跳过0000000000000000000000000000000000')
+        print(new_tittle, '111111111111111111')
+        print(true_url, '2222222222222222')
