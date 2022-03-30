@@ -159,6 +159,6 @@ def set_log():
 # 基础配置
 
 set_ = {
-    'max_page': 200,  # 最大页数 200
+    'max_page': 2,  # 最大页数 200
     'max_workers': 8  # 最大线程数
 }

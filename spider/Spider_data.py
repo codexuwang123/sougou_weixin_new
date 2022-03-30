@@ -14,6 +14,7 @@ from to_sql import save_data_to_sql
 from redis_client import redis_connect
 from settings import ua
 import json
+from settings import set_
 list = []
 
 conn = redis_connect.Redis_connect()
@@ -80,7 +81,7 @@ def last_mains():
             dict_redis = {}
             dict_redis['book_name'] = i.get('Search_Keyword')
             print(dict_redis)
-            for n in range(1, 6):
+            for n in range(1, set_.get('max_page')):
                 spider_self = Spider_desc_sougou_weixin(wd=i.get('Search_Keyword'))
                 spider_self.spider_sougou_weixin(page=n, keyword=spider_self.wd,list_redis=list_redis)
 
