@@ -16,6 +16,7 @@ import json
 import urllib3
 from spider import Spider_data
 from settings import ua
+from settings import code_new
 
 urllib3.disable_warnings()
 
@@ -77,8 +78,8 @@ def get_true(url,session):
 
 
 # 详情页解析
-def format_data(data, dict):
-    dict_details = {}
+def format_data(data, dict,dict_details):
+
     # 作者名称
     author2 = re.findall('<meta property="og:article:author" content="(.*?)"/>', data, re.S)
     if author2:
@@ -129,8 +130,7 @@ def format_data(data, dict):
 
 
 # 首页数据解析
-def format_text(first_data_list, tittle_list, keyword,cookies,list_redis):
-    list = []
+def format_text(first_data_list, tittle_list, keyword,cookies,list_redis,section_name, author):
     cookies1 = cookies
     for i, n in zip(first_data_list, tittle_list):
         number = str(uuid.uuid1()).replace('-', '')
@@ -155,10 +155,9 @@ def format_text(first_data_list, tittle_list, keyword,cookies,list_redis):
         dict['true_url'] = ''
         dict['keyword'] = keyword
         dict['cookies'] = cookies1
+        dict['section_name'] = section_name
+        dict['author_name'] = author
         list_redis.append(dict)
-        # dict_ = json.dumps(dict)
-        # print(dict_, '===========')
-        # conn.insert_data_redis(redis_key='sougou_weixin', values=dict_)
 
 
 # 获取jsessionid
@@ -216,26 +215,70 @@ def get_sougou_weixin_rue_url(skip_url,session):
         return skip_url
 
 
+# 解析规则
+def parse_html_to_str(htmlbody):
+    # 去除页面中所有的 script 标签
+    re_script = re.compile('<script[^>]*>[\s\S]*?<\/script>', re.I)
+    re_style = re.compile('<\s*style[^>]*>[^<]*<\s*/\s*style\s*>', re.I)  # 去除页面中的style 标签
+    del_label = re.compile(r'<[^>]+>', re.S)  # 去除页面中所有的标签
+
+    content_del = re_script.sub("", htmlbody)
+    content_del = re_style.sub("", content_del)
+    content_del = del_label.sub("", content_del)
+    # 去除标签后 会出现很多的空格 或者 换行符 ，对其进行处理
+    content_del = content_del.replace('\t', '').replace(' ', '')
+    # 处理后发现 有很多的空行，按 换行符进行分割
+    content_del = content_del.split('\n')
+    content = ''
+    # 处理空行
+    for c in content_del:
+        if c:
+            content = content + c.strip() + '\n'
+    # 去除所有空格
+    new_1 = re.sub('\s+', '', content)
+    # 循环去除特殊符号
+    for i in code_new:
+        new_1 = new_1.replace('{}'.format(i), '')
+    return new_1
+
+
 # 主要解析程序
 def get_(new_keyword, new_tittle, details_data, true_url,
-                          dict):
-    #
-    # print('线程进来了================')
-    # dta = conn.search_data_redis(redis_key='sougou_weixin')
-    # if dta:
-    #     dict = json.loads(dta)
-    #     # print(dict,'000109q39q8989q')
-    #     new_tittle = dict.get('tittle')
-    #     new_url = dict.get('url')
-    #     cookies = dict.get('cookies')
-    #     # print(cookies,'---------------')
-    #     cookies1 = get_jsessionid()
-    #     # print(cookies1,'======================')
-    #     print(type(new_url), new_url, '000000011111111111111111111111111')
-    #     true_url1 = get_sougou_weixin_rue_url(skip_url=new_url,session=cookies+cookies1)
-    #     details_data, true_url = get_true(url=true_url1,session=cookies+cookies1)
-    #     dict['true_url'] = true_url
-    #     new_keyword = dict.get('keyword')
+                          dict,number):
+    book_dict = {}
+    new_dict = {}
+    sql_server = save_data_to_sql.Save_score_to_sql()
+    # 解析详情页数据
+    book_dict['number'] = number
+    book_dict['book_name'] = new_keyword
+    book_dict['true_url'] = true_url
+    book_html = parse_html_to_str(htmlbody=details_data)
+    book_name = dict['keyword']
+    book_author = dict['author_name']
+    book_section = dict['section_name']
+    book_dict['book_detail'] = book_html
+    name_score = 0.0
+    if book_name in book_html:
+        name_score = name_score + 1.0
+        new_dict['book_name_score'] = name_score
+    else:
+        new_dict['book_name_score'] = 0.0
+    book_author_ = 0.0
+    if book_author in book_html:
+        book_author_ = book_author_ + 1.0
+        new_dict['author_score'] = book_author_
+    else:
+        new_dict['author_score'] = 0.0
+
+    section_list = book_section.split(';')
+    sec_score = 0.0
+    for sec in section_list:
+        if sec in book_html:
+            sec_score = sec_score + 0.2
+    new_dict['section_score'] = sec_score
+    new_dict['weight'] = name_score + book_author_ + sec_score
+    # 详情整页数据存储
+    sql_server.book_html_to_sql(data=book_dict)
     if new_keyword in new_tittle:
         if details_data == '编码异常':
             print('编码异常====', true_url)
@@ -247,7 +290,7 @@ def get_(new_keyword, new_tittle, details_data, true_url,
             print('服务异常=================', true_url)
             return None
 
-        format_data(data=details_data, dict=dict)
+        format_data(data=details_data, dict=dict,dict_details=new_dict)
         # 数据库存放数据
         sql_server = save_data_to_sql.Save_score_to_sql()
         sql_server.search_data_to_sql(data=dict)

@@ -15,6 +15,7 @@ from redis_client import redis_connect
 from settings import ua
 import json
 from settings import set_
+
 list = []
 
 conn = redis_connect.Redis_connect()
@@ -28,10 +29,10 @@ class Spider_desc_sougou_weixin():
     def __init__(self, wd):
         self.uA = ua.get('user_agent')
         self.wd = wd
-        logging_.info('搜索引擎搜狗微信，正在爬取={}相关内容。'.format(self.wd))
+        # logging_.info('搜索引擎搜狗微信，正在爬取={}相关内容。'.format(self.wd))
 
     # 解析主函数
-    def spider_sougou_weixin(self, page, list_redis,keyword=None):
+    def spider_sougou_weixin(self, page, list_redis,section_name, author, keyword=None):
 
         self.url = 'https://weixin.sogou.com/weixin?'
         self.params = {
@@ -64,7 +65,7 @@ class Spider_desc_sougou_weixin():
             url_list = re.findall('<div class="txt-box">.*?<a target="_blank" href="(.*?)"', res.text, re.S)
             tittle_list = re.findall('uigs="article_title_\d+">(.*?)</a>', res.text, re.S)
             format_base_spdb.format_text(first_data_list=url_list, tittle_list=tittle_list, keyword=keyword,
-                                         cookies=cookie,list_redis=list_redis)
+                                         cookies=cookie, list_redis=list_redis,section_name=section_name, author=author)
             print(cookie, '==============')
         else:
             print(res.text)
@@ -75,15 +76,16 @@ def last_mains():
     # 数据库获取关键次列表
     keyword_list = s_data.get_keyword()
     if keyword_list:
-        i = ''
         for i in keyword_list:
             list_redis = []
             dict_redis = {}
-            dict_redis['book_name'] = i.get('Search_Keyword')
+            dict_redis['book_name'] = i.get('search_keyword')
+            section_name = i.get('section_name')
+            author_name = i.get('author')
             print(dict_redis)
             for n in range(1, set_.get('max_page')):
-                spider_self = Spider_desc_sougou_weixin(wd=i.get('Search_Keyword'))
-                spider_self.spider_sougou_weixin(page=n, keyword=spider_self.wd,list_redis=list_redis)
+                spider_self = Spider_desc_sougou_weixin(wd=i.get('search_keyword'))
+                spider_self.spider_sougou_weixin(page=n, keyword=spider_self.wd, list_redis=list_redis,section_name=section_name,author=author_name)
 
             dict_redis['data'] = list_redis
             dict_ = json.dumps(dict_redis, ensure_ascii=False)
@@ -91,7 +93,7 @@ def last_mains():
             conn.insert_data_redis(redis_key='sougou_weixin', values=dict_)
             print('redis 数据存放成功')
             # 更新爬虫状态
-            s_data.undate_data(status_='1', keyword=i.get('Search_Keyword'))
+            s_data.undate_data(status_='1', keyword=i.get('search_keyword'))
         # 关闭数据库连接
         # s_data.close()
         # return keyword_list
